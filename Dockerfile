@@ -1,23 +1,15 @@
-FROM jenkins/jenkins
+FROM python:3.7
 
-USER root
-RUN apt-get -y update && \ 
-    apt-get -y install sudo && \
-    apt-get -y install apt-transport-https ca-certificates curl gnupg-agent software-properties-common && \
-    curl -fsSL https://download.docker.com/linux/debian/gpg | apt-key add - && \
-    add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/debian $(lsb_release -cs) stable" && \
-    apt-get -y update && \ 
-    apt-get -y install docker-ce && \
-    apt-get -y install docker-ce-cli && \
-    apt-get -y install containerd.io
+RUN groupadd -r uwsgi && useradd -r -g uwsgi uwsgi
+RUN python -m pip install pip --upgrade
+RUN pip install Flask uWSGI requests redis
 
-RUN echo "jenkins ALL=NOPASSWD: ALL" >> /etc/sudoers
+WORKDIR /app
+COPY app /app
+COPY cmd.sh /
 
-RUN curl -L https://github.com/docker/compose/releases/download/1.4.1/\
-docker-compose-`uname -s`-`uname -m` \
-> /usr/local/bin/docker-compose; \
-chmod +x /usr/local/bin/docker-compose
-USER jenkins
+EXPOSE 9090 9191
 
-COPY plugins.txt /usr/share/jenkins/plugins.txt
-RUN /usr/local/bin/install-plugins.sh < /usr/share/jenkins/plugins.txt
+USER uwsgi
+
+CMD ["/cmd.sh"]
